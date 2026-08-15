@@ -110,7 +110,7 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 });
 
-// TEST ROUTE: Fetch User Gmail Messages with Subject and Snippet details
+// TEST ROUTE: Fetch User Gmail Messages with Subject and Snippet details safely
 app.get('/api/gmail/messages', async (req, res) => {
     const email = req.query.email || req.session.userEmail;
 
@@ -143,29 +143,25 @@ app.get('/api/gmail/messages', async (req, res) => {
         const messages = response.data.messages || [];
         const detailedMessages = [];
 
-        // Loop through messages to fetch Subject and From headers
+        // Loop through messages to fetch Subject, From and Snippet safely
         for (const msg of messages) {
             const msgDetail = await gmail.users.messages.get({
                 userId: 'me',
                 id: msg.id,
-                format: 'metadata',
-                metadataHeaders: ['Subject', 'From']
+                format: 'full'
             });
 
-            const headers = msgDetail.data.payload.headers;
-            let subject = 'No Subject';
-            let sender = 'Unknown Sender';
+            const payload = msgDetail.data.payload || {};
+            const headers = payload.headers || [];
 
-            headers.forEach(header => {
-                if (header.name === 'Subject') subject = header.value;
-                if (header.name === 'From') sender = header.value;
-            });
+            const subjectHeader = headers.find(h => h.name && h.name.toLowerCase() === 'subject');
+            const fromHeader = headers.find(h => h.name && h.name.toLowerCase() === 'from');
 
             detailedMessages.push({
                 id: msg.id,
                 threadId: msg.threadId,
-                subject: subject,
-                from: sender,
+                subject: subjectHeader ? subjectHeader.value : 'No Subject',
+                from: fromHeader ? fromHeader.value : 'Unknown Sender',
                 snippet: msgDetail.data.snippet || ''
             });
         }
