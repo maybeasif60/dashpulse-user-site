@@ -448,7 +448,7 @@
             const msg = JSON.parse(decodeURIComponent(encodedMsg));
             document.getElementById('readSubject').innerText = msg.subject;
             document.getElementById('readSender').innerText = msg.from;
-            document.getElementById('readSnippet').innerText = msg.snippet;
+            document.getElementById('readSnippet').innerHTML = msg.body || msg.snippet;
             document.getElementById('readEmailModal').style.display = 'flex';
         }
 
