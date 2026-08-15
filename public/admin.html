@@ -86,6 +86,7 @@
             border-right: 1px solid #334155;
             overflow-y: auto;
             padding: 10px 0;
+            flex-shrink: 0;
         }
         .gmail-sidebar-item {
             display: flex;
@@ -181,7 +182,7 @@
 
     <!-- Gmail Modal -->
     <div id="gmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:#0f172a; border-radius:12px; width:90%; max-width:1000px; height:85vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
+        <div style="background:#0f172a; border-radius:12px; width:90%; max-width:1050px; height:85vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
             
             <!-- Header -->
             <div style="background:#1e293b; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155;">
@@ -203,9 +204,9 @@
                 </div>
             </div>
 
-            <!-- Gmail Official Layout (Sidebar + Content) -->
+            <!-- Gmail Official Layout (Sidebar + Content/Tabs) -->
             <div class="gmail-layout">
-                <!-- Sidebar Menu (Inbox, Starred, Sent, Drafts, Spam, Trash etc.) -->
+                <!-- Sidebar Menu -->
                 <div class="gmail-sidebar">
                     <div class="gmail-sidebar-item active" onclick="switchFolder('INBOX', this)">
                         <i class="fa-solid fa-inbox"></i> Inbox
@@ -219,33 +220,43 @@
                     <div class="gmail-sidebar-item" onclick="switchFolder('DRAFTS', this)">
                         <i class="fa-regular fa-file"></i> Drafts
                     </div>
-                    <div class="gmail-sidebar-item" onclick="switchFolder('PURCHASES', this)">
-                        <i class="fa-solid fa-bag-shopping"></i> Purchases
-                    </div>
-                    <div class="gmail-sidebar-item" onclick="switchFolder('IMPORTANT', this)">
-                        <i class="fa-solid fa-bookmark"></i> Important
-                    </div>
                     <div class="gmail-sidebar-item" onclick="switchFolder('SPAM', this)">
                         <i class="fa-solid fa-circle-exclamation"></i> Spam
                     </div>
                     <div class="gmail-sidebar-item" onclick="switchFolder('TRASH', this)">
                         <i class="fa-regular fa-trash-can"></i> Trash
                     </div>
-                    <div class="gmail-sidebar-item" onclick="switchFolder('ALL', this)">
-                        <i class="fa-solid fa-envelope-open-text"></i> All Mail
-                    </div>
                 </div>
 
-                <!-- Message List Area -->
-                <div id="gmailContent" style="flex-grow:1; overflow-y:auto; background:#1e293b;">
-                    <p style="text-align:center; color:#94a3b8; margin-top:40px;">Loading messages...</p>
+                <!-- Main Content Area -->
+                <div style="flex-grow:1; display:flex; flex-direction:column; background:#1e293b; overflow:hidden;">
+                    <!-- Gmail Tabs Bar (Primary, Promotions, Social, Updates) -->
+                    <div id="gmailTabsBar" style="display:flex; background:#1e293b; border-bottom:1px solid #334155; padding:0 15px;">
+                        <div class="gmail-tab active" onclick="switchTab('PRIMARY', this)" style="padding:12px 15px; color:#38bdf8; cursor:pointer; font-size:13px; font-weight:600; border-bottom:2px solid #38bdf8; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-inbox"></i> Primary
+                        </div>
+                        <div class="gmail-tab" onclick="switchTab('CATEGORY_PROMOTIONS', this)" style="padding:12px 15px; color:#94a3b8; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-tag"></i> Promotions
+                        </div>
+                        <div class="gmail-tab" onclick="switchTab('CATEGORY_SOCIAL', this)" style="padding:12px 15px; color:#94a3b8; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-user-group"></i> Social
+                        </div>
+                        <div class="gmail-tab" onclick="switchTab('CATEGORY_UPDATES', this)" style="padding:12px 15px; color:#94a3b8; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-circle-info"></i> Updates
+                        </div>
+                    </div>
+
+                    <!-- Message List -->
+                    <div id="gmailContent" style="flex-grow:1; overflow-y:auto; background:#1e293b;">
+                        <p style="text-align:center; color:#94a3b8; margin-top:40px;">Loading messages...</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Read Email Modal -->
-    <div id="readEmailModal" style="display:none; position:fixed; top:0; id:readEmailModal; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1100; justify-content:center; align-items:center;">
+    <div id="readEmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1100; justify-content:center; align-items:center;">
         <div style="background:#1e293b; border-radius:12px; width:80%; max-width:700px; padding:25px; border:1px solid #334155; color:white; box-shadow: 0 15px 35px rgba(0,0,0,0.7);">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:12px; margin-bottom:15px;">
                 <h3 id="readSubject" style="margin:0; color:#38bdf8; font-size:18px;">Email Subject</h3>
@@ -260,6 +271,7 @@
     <script>
         let currentClientMessages = [];
         let activeFolder = 'INBOX';
+        let activeTab = 'PRIMARY';
 
         async function fetchClients() {
             try {
@@ -317,9 +329,13 @@
             modal.style.display = 'flex';
             searchInput.value = '';
             activeFolder = 'INBOX';
+            activeTab = 'PRIMARY';
             
             document.querySelectorAll('.gmail-sidebar-item').forEach(t => t.classList.remove('active'));
             document.querySelector('.gmail-sidebar-item').classList.add('active');
+
+            const tabsBar = document.getElementById('gmailTabsBar');
+            tabsBar.style.display = 'flex';
 
             subHeader.innerHTML = `Account: <span style="color:#fff;">${email}</span>`;
             content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">Fetching official Gmail data...</p>';
@@ -344,6 +360,26 @@
             activeFolder = folderName;
             document.querySelectorAll('.gmail-sidebar-item').forEach(t => t.classList.remove('active'));
             element.classList.add('active');
+
+            const tabsBar = document.getElementById('gmailTabsBar');
+            if (folderName === 'INBOX') {
+                tabsBar.style.display = 'flex';
+            } else {
+                tabsBar.style.display = 'none';
+            }
+            renderFilteredMessages();
+        }
+
+        function switchTab(tabName, element) {
+            activeTab = tabName;
+            document.querySelectorAll('.gmail-tab').forEach(t => {
+                t.classList.remove('active');
+                t.style.color = '#94a3b8';
+                t.style.borderBottom = 'none';
+            });
+            element.classList.add('active');
+            element.style.color = '#38bdf8';
+            element.style.borderBottom = '2px solid #38bdf8';
             renderFilteredMessages();
         }
 
@@ -352,13 +388,20 @@
             const searchQuery = document.getElementById('gmailSearchInput').value.toLowerCase();
 
             const filtered = currentClientMessages.filter(msg => {
-                let matchesFolder = false;
                 const labels = msg.labelIds || [];
+                let matchesFolder = false;
 
-                if (activeFolder === 'ALL') {
-                    matchesFolder = true;
-                } else if (activeFolder === 'INBOX' && labels.includes('INBOX')) {
-                    matchesFolder = true;
+                if (activeFolder === 'INBOX') {
+                    if (labels.includes('INBOX')) {
+                        if (activeTab === 'PRIMARY') {
+                            matchesFolder = !labels.includes('CATEGORY_PROMOTIONS') && 
+                                            !labels.includes('CATEGORY_SOCIAL') && 
+                                            !labels.includes('CATEGORY_UPDATES') && 
+                                            !labels.includes('CATEGORY_FORUMS');
+                        } else {
+                            matchesFolder = labels.includes(activeTab);
+                        }
+                    }
                 } else if (activeFolder === 'STARRED' && labels.includes('STARRED')) {
                     matchesFolder = true;
                 } else if (activeFolder === 'SENT' && labels.includes('SENT')) {
@@ -368,13 +411,6 @@
                 } else if (activeFolder === 'SPAM' && labels.includes('SPAM')) {
                     matchesFolder = true;
                 } else if (activeFolder === 'TRASH' && labels.includes('TRASH')) {
-                    matchesFolder = true;
-                } else if (activeFolder === 'IMPORTANT' && (labels.includes('IMPORTANT') || labels.includes('STARRED'))) {
-                    matchesFolder = true;
-                } else if (activeFolder === 'PURCHASES' && (labels.includes('CATEGORY_PROMOTIONS') || msg.subject.toLowerCase().includes('order') || msg.subject.toLowerCase().includes('purchase'))) {
-                    matchesFolder = true;
-                } else if (activeFolder === 'INBOX' && labels.length === 0) {
-                    // Fallback to inbox if no labels match precisely
                     matchesFolder = true;
                 }
 
@@ -386,7 +422,7 @@
             });
 
             if (filtered.length === 0) {
-                content.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found in ${activeFolder}</p>`;
+                content.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found.</p>`;
                 return;
             }
 
