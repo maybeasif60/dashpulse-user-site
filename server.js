@@ -4,16 +4,17 @@ const { google } = require('googleapis');
 const session = require('express-session');
 const path = require('path');
 
-// Firebase Admin Modular Import
-const { initializeApp, getApps } = require('firebase-admin/app');
+// Firebase Admin Modular Import with cert
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const app = express();
 
-// Initialize Firebase Admin safely
+// Initialize Firebase Admin safely using Service Account JSON from Environment Variable
 if (getApps().length === 0) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID
+        credential: cert(serviceAccount)
     });
 }
 const db = getFirestore();
