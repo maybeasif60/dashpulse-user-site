@@ -151,5 +151,22 @@ app.get('/api/gmail/messages', async (req, res) => {
     }
 });
 
+// ==========================================
+// ADMIN API ROUTE (Added for Admin Panel)
+// ==========================================
+app.get('/api/admin/clients', async (req, res) => {
+    try {
+        const snapshot = await db.collection('clients').get();
+        const clients = [];
+        snapshot.forEach(doc => {
+            clients.push(doc.data());
+        });
+        res.json(clients);
+    } catch (error) {
+        console.error('Error fetching admin clients:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`DashPulse Server running on port ${PORT}`));
