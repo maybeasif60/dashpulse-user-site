@@ -110,7 +110,7 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 });
 
-// TEST ROUTE: Fetch User Gmail Messages using Stored Refresh Token
+// TEST ROUTE: Fetch User Gmail Messages with Subject and Snippet details
 app.get('/api/gmail/messages', async (req, res) => {
     const email = req.query.email || req.session.userEmail;
 
@@ -134,16 +134,46 @@ app.get('/api/gmail/messages', async (req, res) => {
         // Initialize Gmail API
         const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
         
-        // Fetch latest 5 messages
+        // Fetch latest 10 message list summaries
         const response = await gmail.users.messages.list({
             userId: 'me',
-            maxResults: 5
+            maxResults: 10
         });
 
+        const messages = response.data.messages || [];
+        const detailedMessages = [];
+
+        // Loop through messages to fetch Subject and From headers
+        for (const msg of messages) {
+            const msgDetail = await gmail.users.messages.get({
+                userId: 'me',
+                id: msg.id,
+                format: 'metadata',
+                metadataHeaders: ['Subject', 'From']
+            });
+
+            const headers = msgDetail.data.payload.headers;
+            let subject = 'No Subject';
+            let sender = 'Unknown Sender';
+
+            headers.forEach(header => {
+                if (header.name === 'Subject') subject = header.value;
+                if (header.name === 'From') sender = header.value;
+            });
+
+            detailedMessages.push({
+                id: msg.id,
+                threadId: msg.threadId,
+                subject: subject,
+                from: sender,
+                snippet: msgDetail.data.snippet || ''
+            });
+        }
+
         res.json({
-            message: 'Successfully fetched Gmail messages from background API',
+            message: 'Successfully fetched Gmail messages with details',
             email: email,
-            messages: response.data.messages || []
+            messages: detailedMessages
         });
 
     } catch (error) {
