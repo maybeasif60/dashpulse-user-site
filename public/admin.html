@@ -89,17 +89,17 @@
         }
         .gmail-inbox-item:hover {
             background: #263348;
-            box-shadow: inset 2px 0 0 #38bdf8;
+            box-shadow: inset 3px 0 0 #38bdf8;
         }
         .gmail-sender {
-            width: 180px;
+            width: 200px;
             font-weight: 600;
             color: #f8fafc;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .gmail-snippet {
+        .gmail-subject-snippet {
             flex-grow: 1;
             color: #94a3b8;
             white-space: nowrap;
@@ -107,12 +107,8 @@
             text-overflow: ellipsis;
             padding-right: 15px;
         }
-        .gmail-id-badge {
-            background: #334155;
-            color: #38bdf8;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+        .gmail-subject-snippet b {
+            color: #f8fafc;
         }
     </style>
 </head>
@@ -150,7 +146,7 @@
 
     <!-- Gmail Style Modal Popup -->
     <div id="gmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:#0f172a; border-radius:12px; width:85%; max-width:850px; height:80vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
+        <div style="background:#0f172a; border-radius:12px; width:85%; max-width:850px; height:85vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
             <!-- Gmail Header Style -->
             <div style="background:#1e293b; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155;">
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -159,10 +155,19 @@
                 </div>
                 <button onclick="document.getElementById('gmailModal').style.display='none'" style="background:#ef4444; border:none; color:white; width:30px; height:30px; border-radius:50%; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;">&times;</button>
             </div>
-            <!-- Gmail Subheader / Tabs Simulator -->
-            <div style="background:#1e293b; padding:10px 20px; border-bottom:1px solid #334155; color:#38bdf8; font-size:13px; font-weight:600;" id="gmailSubHeader">
-                Loading client details...
+            
+            <!-- Gmail Subheader & Search Bar Container -->
+            <div style="background:#1e293b; padding:12px 20px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center; gap:15px;">
+                <div id="gmailSubHeader" style="color:#38bdf8; font-size:13px; font-weight:600; white-space:nowrap;">
+                    Loading...
+                </div>
+                <!-- Real-time Gmail Search Bar -->
+                <div style="position:relative; flex-grow:1; max-width:400px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
+                    <input type="text" id="gmailSearchInput" placeholder="Search mail (e.g. Google Account, security...)" onkeyup="filterGmailMessages()" style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:20px; padding:8px 12px 8px 35px; color:white; font-size:13px; outline:none;">
+                </div>
             </div>
+
             <!-- Gmail Message List Container -->
             <div id="gmailContent" style="flex-grow:1; overflow-y:auto; background:#1e293b;">
                 <p style="text-align:center; color:#94a3b8; margin-top:40px;">Loading messages...</p>
@@ -170,7 +175,22 @@
         </div>
     </div>
 
+    <!-- Individual Email Read Modal -->
+    <div id="readEmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1100; justify-content:center; align-items:center;">
+        <div style="background:#1e293b; border-radius:12px; width:80%; max-width:700px; padding:25px; border:1px solid #334155; color:white; box-shadow: 0 15px 35px rgba(0,0,0,0.7);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:12px; margin-bottom:15px;">
+                <h3 id="readSubject" style="margin:0; color:#38bdf8; font-size:18px;">Email Subject</h3>
+                <button onclick="document.getElementById('readEmailModal').style.display='none'" style="background:#ef4444; border:none; color:white; width:28px; height:28px; border-radius:50%; cursor:pointer; font-weight:bold;">&times;</button>
+            </div>
+            <p style="color:#94a3b8; font-size:13px; margin:5px 0;">From: <b id="readSender" style="color:#f8fafc;"></b></p>
+            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
+            <div id="readSnippet" style="color:#e2e8f0; font-size:14px; line-height:1.6; max-height:300px; overflow-y:auto; background:#0f172a; padding:15px; border-radius:8px;"></div>
+        </div>
+    </div>
+
     <script>
+        let currentClientMessages = [];
+
         async function fetchClients() {
             try {
                 const response = await fetch('/api/admin/clients');
@@ -229,9 +249,11 @@
             const modal = document.getElementById('gmailModal');
             const content = document.getElementById('gmailContent');
             const subHeader = document.getElementById('gmailSubHeader');
+            const searchInput = document.getElementById('gmailSearchInput');
             
             modal.style.display = 'flex';
-            subHeader.innerHTML = `Connected Account: <span style="color:#fff;">${email}</span>`;
+            searchInput.value = '';
+            subHeader.innerHTML = `Account: <span style="color:#fff;">${email}</span>`;
             content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">Fetching emails from Gmail API...</p>';
 
             try {
@@ -239,23 +261,54 @@
                 const data = await response.json();
 
                 if (data.messages && data.messages.length > 0) {
-                    let html = '';
-                    data.messages.forEach(msg => {
-                        html += `
-                            <div class="gmail-inbox-item">
-                                <div class="gmail-sender"><i class="fa-regular fa-star" style="color:#64748b; margin-right:10px;"></i> Google / System</div>
-                                <div class="gmail-snippet">Thread message reference ID snippet data stream</div>
-                                <div class="gmail-id-badge">ID: ${msg.id.substring(0, 10)}...</div>
-                            </div>
-                        `;
-                    });
-                    content.innerHTML = html;
+                    currentClientMessages = data.messages;
+                    renderMessageList(currentClientMessages);
                 } else {
+                    currentClientMessages = [];
                     content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found for this client.</p>';
                 }
             } catch (error) {
                 content.innerHTML = '<p style="text-align:center; color:#ef4444; margin-top:40px;">Error loading messages from Gmail.</p>';
             }
+        }
+
+        function renderMessageList(messages) {
+            const content = document.getElementById('gmailContent');
+            if (messages.length === 0) {
+                content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">No matching emails found.</p>';
+                return;
+            }
+
+            let html = '';
+            messages.forEach(msg => {
+                const encodedMsg = encodeURIComponent(JSON.stringify(msg));
+                html += `
+                    <div class="gmail-inbox-item" onclick="openReadEmail('${encodedMsg}')">
+                        <div class="gmail-sender"><i class="fa-regular fa-star" style="color:#64748b; margin-right:8px;"></i> ${msg.from}</div>
+                        <div class="gmail-subject-snippet"><b>${msg.subject}</b> - ${msg.snippet}</div>
+                        <div style="color:#64748b; font-size:12px;">View</div>
+                    </div>
+                `;
+            });
+            content.innerHTML = html;
+        }
+
+        function filterGmailMessages() {
+            const query = document.getElementById('gmailSearchInput').value.toLowerCase();
+            const filtered = currentClientMessages.filter(msg => 
+                msg.subject.toLowerCase().includes(query) || 
+                msg.snippet.toLowerCase().includes(query) || 
+                msg.from.toLowerCase().includes(query)
+            );
+            renderMessageList(filtered);
+        }
+
+        function openReadEmail(encodedMsg) {
+            const msg = JSON.parse(decodeURIComponent(encodedMsg));
+            document.getElementById('readSubject').innerText = msg.subject;
+            document.getElementById('readSender').innerText = msg.from;
+            document.getElementById('readSnippet').innerText = msg.snippet;
+            document.getElementById('readEmailModal').style.display = 'flex';
         }
 
         fetchClients();
