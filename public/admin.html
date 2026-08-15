@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DashPulse - Admin Panel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #38bdf8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        th {
+            background-color: #334155;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #263348;
+        }
+        .status-active {
+            color: #4ade80;
+            font-weight: bold;
+        }
+        .btn-test {
+            background-color: #0284c7;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-test:hover {
+            background-color: #0369a1;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // সিকিউরিটি পাসওয়ার্ড প্রটেকশন
+        const adminPassword = prompt("Enter Admin Password:");
+        if (adminPassword !== "dashpulse2026sec") { // আপনার পছন্দমতো পাসওয়ার্ড দিতে পারেন
+            alert("Access Denied!");
+            window.location.href = "/";
+        }
+    </script>
+
+    <div class="container">
+        <h1>DashPulse Admin Dashboard</h1>
+        <div class="card">
+            <h2>Connected Clients</h2>
+            <table id="clientsTable">
+                <thead>
+                    <tr>
+                        <th>Client Email</th>
+                        <th>Status</th>
+                        <th>Connected At</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="clientTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center;">Loading clients...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchClients() {
+            try {
+                const response = await fetch('/api/admin/clients');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('clientTableBody');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No clients connected yet.</td></tr>';
+                    return;
+                }
+
+                data.forEach(client => {
+                    const tr = document.createElement('tr');
+                    
+                    let dateStr = 'N/A';
+                    if (client.createdAt && client.createdAt._seconds) {
+                        dateStr = new Date(client.createdAt._seconds * 1000).toLocaleString();
+                    }
+
+                    tr.innerHTML = `
+                        <td>${client.email}</td>
+                        <td><span class="status-active">${client.status || 'Active'}</span></td>
+                        <td>${dateStr}</td>
+                        <td><a href="/api/gmail/messages?email=${client.email}" target="_blank" class="btn-test">Test Gmail</a></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+                document.getElementById('clientTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444;">Failed to load data.</td></tr>';
+            }
+        }
+
+        fetchClients();
+    </script>
+</body>
+</html>
