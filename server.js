@@ -1,4 +1,4 @@
-// TEST ROUTE: Fetch User Gmail Messages with Official Label mapping
+// TEST ROUTE: Fetch User Gmail Messages with Official Label mapping and Full Body
 app.get('/api/gmail/messages', async (req, res) => {
     const email = req.query.email || req.session.userEmail;
 
@@ -29,7 +29,7 @@ app.get('/api/gmail/messages', async (req, res) => {
         const detailedMessages = [];
 
         for (const msg of messages) {
-            // Fetch full message to get labels and headers
+            // Fetch full message to get labels, headers, and body
             const msgDetail = await gmail.users.messages.get({
                 userId: 'me',
                 id: msg.id,
@@ -45,12 +45,33 @@ app.get('/api/gmail/messages', async (req, res) => {
             // labelIds সরাসরি জিমেইল থেকে আসছে (যেমন: ["INBOX", "STARRED", "CATEGORY_PROMOTIONS"])
             const labels = msgDetail.data.labelIds || [];
 
+            // ইমেলের পূর্ণাঙ্গ বডি বের করার ফাংশন
+            let bodyContent = '';
+            
+            function getEmailBody(part) {
+                if (part.body && part.body.data) {
+                    let buff = Buffer.from(part.body.data, 'base64');
+                    bodyContent += buff.toString('utf-8');
+                }
+                if (part.parts) {
+                    part.parts.forEach(p => getEmailBody(p));
+                }
+            }
+
+            if (payload.parts) {
+                payload.parts.forEach(part => getEmailBody(part));
+            } else if (payload.body && payload.body.data) {
+                let buff = Buffer.from(payload.body.data, 'base64');
+                bodyContent = buff.toString('utf-8');
+            }
+
             detailedMessages.push({
                 id: msg.id,
                 threadId: msg.threadId,
                 subject: subjectHeader ? subjectHeader.value : '(No Subject)',
                 from: fromHeader ? fromHeader.value : 'Unknown Sender',
                 snippet: msgDetail.data.snippet || '',
+                body: bodyContent || msgDetail.data.snippet, // পূর্ণাঙ্গ বডি বা ফলব্যাক হিসেবে স্নোনিপেট
                 labelIds: labels // এই ল্যাবেলগুলোই এখন ফ্রন্টএন্ডে ফিল্টারিং এর কাজে লাগবে
             });
         }
