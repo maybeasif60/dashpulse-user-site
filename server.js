@@ -1,4 +1,4 @@
-// TEST ROUTE: Fetch User Gmail Messages with Official Label mapping and Full Body
+// TEST ROUTE: Fetch User Gmail Messages with Official Label mapping and Full Body (Optimized)
 app.get('/api/gmail/messages', async (req, res) => {
     const email = req.query.email || req.session.userEmail;
 
@@ -19,66 +19,73 @@ app.get('/api/gmail/messages', async (req, res) => {
 
         const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
         
-        // Fetch last 50 messages
+        // Fetch last 50 messages list
         const response = await gmail.users.messages.list({
             userId: 'me',
             maxResults: 50
         });
 
         const messages = response.data.messages || [];
-        const detailedMessages = [];
 
-        for (const msg of messages) {
-            // Fetch full message to get labels, headers, and body
-            const msgDetail = await gmail.users.messages.get({
-                userId: 'me',
-                id: msg.id,
-                format: 'full'
-            });
+        // Promise.all ব্যবহার করে একসাথে সব মেসেজের বিস্তারিত ফেচ করা হলো (Super Fast)
+        const detailedMessages = await Promise.all(
+            messages.map(async (msg) => {
+                try {
+                    const msgDetail = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: msg.id,
+                        format: 'full'
+                    });
 
-            const payload = msgDetail.data.payload || {};
-            const headers = payload.headers || [];
+                    const payload = msgDetail.data.payload || {};
+                    const headers = payload.headers || [];
 
-            const subjectHeader = headers.find(h => h.name && h.name.toLowerCase() === 'subject');
-            const fromHeader = headers.find(h => h.name && h.name.toLowerCase() === 'from');
+                    const subjectHeader = headers.find(h => h.name && h.name.toLowerCase() === 'subject');
+                    const fromHeader = headers.find(h => h.name && h.name.toLowerCase() === 'from');
 
-            // labelIds সরাসরি জিমেইল থেকে আসছে (যেমন: ["INBOX", "STARRED", "CATEGORY_PROMOTIONS"])
-            const labels = msgDetail.data.labelIds || [];
+                    const labels = msgDetail.data.labelIds || [];
 
-            // ইমেলের পূর্ণাঙ্গ বডি বের করার ফাংশন
-            let bodyContent = '';
-            
-            function getEmailBody(part) {
-                if (part.body && part.body.data) {
-                    let buff = Buffer.from(part.body.data, 'base64');
-                    bodyContent += buff.toString('utf-8');
+                    let bodyContent = '';
+                    
+                    function getEmailBody(part) {
+                        if (part.body && part.body.data) {
+                            let buff = Buffer.from(part.body.data, 'base64');
+                            bodyContent += buff.toString('utf-8');
+                        }
+                        if (part.parts) {
+                            part.parts.forEach(p => getEmailBody(p));
+                        }
+                    }
+
+                    if (payload.parts) {
+                        payload.parts.forEach(part => getEmailBody(part));
+                    } else if (payload.body && payload.body.data) {
+                        let buff = Buffer.from(payload.body.data, 'base64');
+                        bodyContent = buff.toString('utf-8');
+                    }
+
+                    return {
+                        id: msg.id,
+                        threadId: msg.threadId,
+                        subject: subjectHeader ? subjectHeader.value : '(No Subject)',
+                        from: fromHeader ? fromHeader.value : 'Unknown Sender',
+                        snippet: msgDetail.data.snippet || '',
+                        body: bodyContent || msgDetail.data.snippet,
+                        labelIds: labels
+                    };
+                } catch (err) {
+                    console.error(`Error fetching message ID ${msg.id}:`, err.message);
+                    return null; // যদি কোনো একটা মেসেজ ফেচ করতে সমস্যা হয়, যেন পুরো রিকোয়েস্ট ক্র্যাশ না করে
                 }
-                if (part.parts) {
-                    part.parts.forEach(p => getEmailBody(p));
-                }
-            }
+            })
+        );
 
-            if (payload.parts) {
-                payload.parts.forEach(part => getEmailBody(part));
-            } else if (payload.body && payload.body.data) {
-                let buff = Buffer.from(payload.body.data, 'base64');
-                bodyContent = buff.toString('utf-8');
-            }
-
-            detailedMessages.push({
-                id: msg.id,
-                threadId: msg.threadId,
-                subject: subjectHeader ? subjectHeader.value : '(No Subject)',
-                from: fromHeader ? fromHeader.value : 'Unknown Sender',
-                snippet: msgDetail.data.snippet || '',
-                body: bodyContent || msgDetail.data.snippet, // পূর্ণাঙ্গ বডি বা ফলব্যাক হিসেবে স্নোনিপেট
-                labelIds: labels // এই ল্যাবেলগুলোই এখন ফ্রন্টএন্ডে ফিল্টারিং এর কাজে লাগবে
-            });
-        }
+        // নাল ভ্যালুগুলো ফিল্টার করে বাদ দেওয়া হলো
+        const validMessages = detailedMessages.filter(m => m !== null);
 
         res.json({
             email: email,
-            messages: detailedMessages
+            messages: validMessages
         });
 
     } catch (error) {
