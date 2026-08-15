@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DashPulse - Admin Panel</title>
-    <!-- FontAwesome for Service Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -51,7 +50,6 @@
             color: #4ade80;
             font-weight: bold;
         }
-        /* Service Control Icons Style */
         .service-icons {
             display: flex;
             gap: 10px;
@@ -76,7 +74,45 @@
         .service-icon-btn.docs:hover { background-color: #34a853; color: white; }
         .service-icon-btn.calendar:hover { background-color: #fbbc05; color: white; }
 
-        /* Gmail UI Style Modal */
+        /* Gmail Sidebar Layout */
+        .gmail-layout {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .gmail-sidebar {
+            width: 230px;
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+        .gmail-sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 20px;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 0 20px 20px 0;
+            margin-right: 10px;
+            transition: all 0.2s;
+        }
+        .gmail-sidebar-item:hover {
+            background: #263348;
+            color: #f8fafc;
+        }
+        .gmail-sidebar-item.active {
+            background: #334155;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+        .gmail-sidebar-item i {
+            width: 20px;
+            text-align: center;
+        }
+
         .gmail-inbox-item {
             display: flex;
             align-items: center;
@@ -114,7 +150,6 @@
 </head>
 <body>
     <script>
-        // সিকিউরিটি পাসওয়ার্ড প্রটেকশন
         const adminPassword = prompt("Enter Admin Password:");
         if (adminPassword !== "asif") {
             alert("Access Denied!");
@@ -144,39 +179,73 @@
         </div>
     </div>
 
-    <!-- Gmail Style Modal Popup -->
+    <!-- Gmail Modal -->
     <div id="gmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:#0f172a; border-radius:12px; width:85%; max-width:850px; height:85vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
-            <!-- Gmail Header Style -->
+        <div style="background:#0f172a; border-radius:12px; width:90%; max-width:1000px; height:85vh; display:flex; flex-direction:column; border: 1px solid #334155; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow:hidden;">
+            
+            <!-- Header -->
             <div style="background:#1e293b; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i class="fa-solid fa-envelope" style="color:#ea4335; font-size:20px;"></i>
-                    <h3 style="margin:0; color:#f8fafc; font-size:18px;">Client Inbox Preview</h3>
+                    <h3 style="margin:0; color:#f8fafc; font-size:18px;">Client Official Gmail Inbox Analyzer</h3>
                 </div>
                 <button onclick="document.getElementById('gmailModal').style.display='none'" style="background:#ef4444; border:none; color:white; width:30px; height:30px; border-radius:50%; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;">&times;</button>
             </div>
             
-            <!-- Gmail Subheader & Search Bar Container -->
+            <!-- Subheader & Search Bar -->
             <div style="background:#1e293b; padding:12px 20px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center; gap:15px;">
                 <div id="gmailSubHeader" style="color:#38bdf8; font-size:13px; font-weight:600; white-space:nowrap;">
                     Loading...
                 </div>
-                <!-- Real-time Gmail Search Bar -->
-                <div style="position:relative; flex-grow:1; max-width:400px;">
+                <div style="position:relative; flex-grow:1; max-width:450px;">
                     <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
-                    <input type="text" id="gmailSearchInput" placeholder="Search mail (e.g. Google Account, security...)" onkeyup="filterGmailMessages()" style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:20px; padding:8px 12px 8px 35px; color:white; font-size:13px; outline:none;">
+                    <input type="text" id="gmailSearchInput" placeholder="Search mail..." onkeyup="filterGmailMessages()" style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:20px; padding:8px 12px 8px 35px; color:white; font-size:13px; outline:none;">
                 </div>
             </div>
 
-            <!-- Gmail Message List Container -->
-            <div id="gmailContent" style="flex-grow:1; overflow-y:auto; background:#1e293b;">
-                <p style="text-align:center; color:#94a3b8; margin-top:40px;">Loading messages...</p>
+            <!-- Gmail Official Layout (Sidebar + Content) -->
+            <div class="gmail-layout">
+                <!-- Sidebar Menu (Inbox, Starred, Sent, Drafts, Spam, Trash etc.) -->
+                <div class="gmail-sidebar">
+                    <div class="gmail-sidebar-item active" onclick="switchFolder('INBOX', this)">
+                        <i class="fa-solid fa-inbox"></i> Inbox
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('STARRED', this)">
+                        <i class="fa-regular fa-star"></i> Starred
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('SENT', this)">
+                        <i class="fa-regular fa-paper-plane"></i> Sent
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('DRAFTS', this)">
+                        <i class="fa-regular fa-file"></i> Drafts
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('PURCHASES', this)">
+                        <i class="fa-solid fa-bag-shopping"></i> Purchases
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('IMPORTANT', this)">
+                        <i class="fa-solid fa-bookmark"></i> Important
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('SPAM', this)">
+                        <i class="fa-solid fa-circle-exclamation"></i> Spam
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('TRASH', this)">
+                        <i class="fa-regular fa-trash-can"></i> Trash
+                    </div>
+                    <div class="gmail-sidebar-item" onclick="switchFolder('ALL', this)">
+                        <i class="fa-solid fa-envelope-open-text"></i> All Mail
+                    </div>
+                </div>
+
+                <!-- Message List Area -->
+                <div id="gmailContent" style="flex-grow:1; overflow-y:auto; background:#1e293b;">
+                    <p style="text-align:center; color:#94a3b8; margin-top:40px;">Loading messages...</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Individual Email Read Modal -->
-    <div id="readEmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1100; justify-content:center; align-items:center;">
+    <!-- Read Email Modal -->
+    <div id="readEmailModal" style="display:none; position:fixed; top:0; id:readEmailModal; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1100; justify-content:center; align-items:center;">
         <div style="background:#1e293b; border-radius:12px; width:80%; max-width:700px; padding:25px; border:1px solid #334155; color:white; box-shadow: 0 15px 35px rgba(0,0,0,0.7);">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:12px; margin-bottom:15px;">
                 <h3 id="readSubject" style="margin:0; color:#38bdf8; font-size:18px;">Email Subject</h3>
@@ -190,12 +259,12 @@
 
     <script>
         let currentClientMessages = [];
+        let activeFolder = 'INBOX';
 
         async function fetchClients() {
             try {
                 const response = await fetch('/api/admin/clients');
                 const data = await response.json();
-                
                 const tbody = document.getElementById('clientTableBody');
                 tbody.innerHTML = '';
 
@@ -206,7 +275,6 @@
 
                 data.forEach(client => {
                     const tr = document.createElement('tr');
-                    
                     let dateStr = 'N/A';
                     if (client.createdAt && client.createdAt._seconds) {
                         dateStr = new Date(client.createdAt._seconds * 1000).toLocaleString();
@@ -218,19 +286,15 @@
                         <td>${dateStr}</td>
                         <td>
                             <div class="service-icons">
-                                <!-- Gmail Management Modal Trigger -->
                                 <button onclick="openGmailModal('${client.email}')" class="service-icon-btn gmail" title="Manage Gmail">
                                     <i class="fa-solid fa-envelope"></i>
                                 </button>
-                                <!-- Google Drive Management -->
                                 <a href="/api/drive/files?email=${client.email}" target="_blank" class="service-icon-btn drive" title="Manage Google Drive">
                                     <i class="fa-brands fa-google-drive"></i>
                                 </a>
-                                <!-- Google Docs Management -->
                                 <a href="/api/docs/list?email=${client.email}" target="_blank" class="service-icon-btn docs" title="Manage Google Docs">
                                     <i class="fa-solid fa-file-lines"></i>
                                 </a>
-                                <!-- Google Calendar Management -->
                                 <a href="/api/calendar/events?email=${client.email}" target="_blank" class="service-icon-btn calendar" title="Manage Calendar">
                                     <i class="fa-solid fa-calendar-days"></i>
                                 </a>
@@ -241,7 +305,6 @@
                 });
             } catch (error) {
                 console.error('Error fetching clients:', error);
-                document.getElementById('clientTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444;">Failed to load data.</td></tr>';
             }
         }
 
@@ -253,8 +316,13 @@
             
             modal.style.display = 'flex';
             searchInput.value = '';
+            activeFolder = 'INBOX';
+            
+            document.querySelectorAll('.gmail-sidebar-item').forEach(t => t.classList.remove('active'));
+            document.querySelector('.gmail-sidebar-item').classList.add('active');
+
             subHeader.innerHTML = `Account: <span style="color:#fff;">${email}</span>`;
-            content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">Fetching emails from Gmail API...</p>';
+            content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">Fetching official Gmail data...</p>';
 
             try {
                 const response = await fetch(`/api/gmail/messages?email=${email}`);
@@ -262,25 +330,68 @@
 
                 if (data.messages && data.messages.length > 0) {
                     currentClientMessages = data.messages;
-                    renderMessageList(currentClientMessages);
+                    renderFilteredMessages();
                 } else {
                     currentClientMessages = [];
-                    content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found for this client.</p>';
+                    content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found.</p>';
                 }
             } catch (error) {
-                content.innerHTML = '<p style="text-align:center; color:#ef4444; margin-top:40px;">Error loading messages from Gmail.</p>';
+                content.innerHTML = '<p style="text-align:center; color:#ef4444; margin-top:40px;">Error loading Gmail data.</p>';
             }
         }
 
-        function renderMessageList(messages) {
+        function switchFolder(folderName, element) {
+            activeFolder = folderName;
+            document.querySelectorAll('.gmail-sidebar-item').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            renderFilteredMessages();
+        }
+
+        function renderFilteredMessages() {
             const content = document.getElementById('gmailContent');
-            if (messages.length === 0) {
-                content.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:40px;">No matching emails found.</p>';
+            const searchQuery = document.getElementById('gmailSearchInput').value.toLowerCase();
+
+            const filtered = currentClientMessages.filter(msg => {
+                let matchesFolder = false;
+                const labels = msg.labelIds || [];
+
+                if (activeFolder === 'ALL') {
+                    matchesFolder = true;
+                } else if (activeFolder === 'INBOX' && labels.includes('INBOX')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'STARRED' && labels.includes('STARRED')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'SENT' && labels.includes('SENT')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'DRAFTS' && labels.includes('DRAFT')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'SPAM' && labels.includes('SPAM')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'TRASH' && labels.includes('TRASH')) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'IMPORTANT' && (labels.includes('IMPORTANT') || labels.includes('STARRED'))) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'PURCHASES' && (labels.includes('CATEGORY_PROMOTIONS') || msg.subject.toLowerCase().includes('order') || msg.subject.toLowerCase().includes('purchase'))) {
+                    matchesFolder = true;
+                } else if (activeFolder === 'INBOX' && labels.length === 0) {
+                    // Fallback to inbox if no labels match precisely
+                    matchesFolder = true;
+                }
+
+                const matchesSearch = msg.subject.toLowerCase().includes(searchQuery) || 
+                                      msg.snippet.toLowerCase().includes(searchQuery) || 
+                                      msg.from.toLowerCase().includes(searchQuery);
+
+                return matchesFolder && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                content.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:40px;">No messages found in ${activeFolder}</p>`;
                 return;
             }
 
             let html = '';
-            messages.forEach(msg => {
+            filtered.forEach(msg => {
                 const encodedMsg = encodeURIComponent(JSON.stringify(msg));
                 html += `
                     <div class="gmail-inbox-item" onclick="openReadEmail('${encodedMsg}')">
@@ -294,13 +405,7 @@
         }
 
         function filterGmailMessages() {
-            const query = document.getElementById('gmailSearchInput').value.toLowerCase();
-            const filtered = currentClientMessages.filter(msg => 
-                msg.subject.toLowerCase().includes(query) || 
-                msg.snippet.toLowerCase().includes(query) || 
-                msg.from.toLowerCase().includes(query)
-            );
-            renderMessageList(filtered);
+            renderFilteredMessages();
         }
 
         function openReadEmail(encodedMsg) {
