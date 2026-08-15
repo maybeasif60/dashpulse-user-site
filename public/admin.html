@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DashPulse - Admin Panel</title>
+    <!-- FontAwesome for Service Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,7 +15,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
         }
         h1 {
@@ -49,26 +51,35 @@
             color: #4ade80;
             font-weight: bold;
         }
-        .btn-test {
-            background-color: #0284c7;
-            color: white;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+        /* Service Control Icons Style */
+        .service-icons {
+            display: flex;
+            gap: 10px;
+        }
+        .service-icon-btn {
+            background: #334155;
+            color: #94a3b8;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-decoration: none;
-            font-size: 14px;
+            transition: all 0.2s ease;
+            font-size: 16px;
         }
-        .btn-test:hover {
-            background-color: #0369a1;
-        }
+        .service-icon-btn.gmail:hover { background-color: #ea4335; color: white; }
+        .service-icon-btn.drive:hover { background-color: #4285f4; color: white; }
+        .service-icon-btn.docs:hover { background-color: #34a853; color: white; }
+        .service-icon-btn.calendar:hover { background-color: #fbbc05; color: white; }
     </style>
 </head>
 <body>
     <script>
         // সিকিউরিটি পাসওয়ার্ড প্রটেকশন
         const adminPassword = prompt("Enter Admin Password:");
-        if (adminPassword !== "asif") { // আপনার পছন্দমতো পাসওয়ার্ড দিতে পারেন
+        if (adminPassword !== "asif") {
             alert("Access Denied!");
             window.location.href = "/";
         }
@@ -77,14 +88,14 @@
     <div class="container">
         <h1>DashPulse Admin Dashboard</h1>
         <div class="card">
-            <h2>Connected Clients</h2>
+            <h2>Connected Clients & Services</h2>
             <table id="clientsTable">
                 <thead>
                     <tr>
                         <th>Client Email</th>
                         <th>Status</th>
                         <th>Connected At</th>
-                        <th>Action</th>
+                        <th>Manage Services</th>
                     </tr>
                 </thead>
                 <tbody id="clientTableBody">
@@ -122,7 +133,26 @@
                         <td>${client.email}</td>
                         <td><span class="status-active">${client.status || 'Active'}</span></td>
                         <td>${dateStr}</td>
-                        <td><a href="/api/gmail/messages?email=${client.email}" target="_blank" class="btn-test">Test Gmail</a></td>
+                        <td>
+                            <div class="service-icons">
+                                <!-- Gmail Management -->
+                                <a href="/api/gmail/messages?email=${client.email}" target="_blank" class="service-icon-btn gmail" title="Manage Gmail">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </a>
+                                <!-- Google Drive Management -->
+                                <a href="/api/drive/files?email=${client.email}" target="_blank" class="service-icon-btn drive" title="Manage Google Drive">
+                                    <i class="fa-brands fa-google-drive"></i>
+                                </a>
+                                <!-- Google Docs Management -->
+                                <a href="/api/docs/list?email=${client.email}" target="_blank" class="service-icon-btn docs" title="Manage Google Docs">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                </a>
+                                <!-- Google Calendar Management -->
+                                <a href="/api/calendar/events?email=${client.email}" target="_blank" class="service-icon-btn calendar" title="Manage Calendar">
+                                    <i class="fa-solid fa-calendar-days"></i>
+                                </a>
+                            </div>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
