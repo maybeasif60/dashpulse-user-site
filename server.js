@@ -3,17 +3,20 @@ const express = require('express');
 const { google } = require('googleapis');
 const session = require('express-session');
 const path = require('path');
-const admin = require('firebase-admin');
+
+// Firebase Admin Modular Import
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const app = express();
 
-// Initialize Firebase Admin (Cloud Deployment Ready)
-if (!admin.apps.length) {
-    admin.initializeApp({
+// Initialize Firebase Admin safely
+if (getApps().length === 0) {
+    initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID
     });
 }
-const db = admin.firestore();
+const db = getFirestore();
 
 // Session Setup
 app.use(session({
@@ -66,7 +69,7 @@ app.get('/auth/google/callback', async (req, res) => {
             email: userEmail,
             refreshToken: tokens.refresh_token,
             status: 'Active',
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
+            createdAt: FieldValue.serverTimestamp()
         }, { merge: true });
 
         res.send(`
