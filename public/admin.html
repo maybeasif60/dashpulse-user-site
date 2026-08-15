@@ -68,6 +68,8 @@
             text-decoration: none;
             transition: all 0.2s ease;
             font-size: 16px;
+            border: none;
+            cursor: pointer;
         }
         .service-icon-btn.gmail:hover { background-color: #ea4335; color: white; }
         .service-icon-btn.drive:hover { background-color: #4285f4; color: white; }
@@ -107,6 +109,17 @@
         </div>
     </div>
 
+    <!-- Gmail Modal Popup -->
+    <div id="gmailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:#1e293b; padding:20px; border-radius:12px; width:80%; max-width:600px; max-height:80%; overflow-y:auto; color:white; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:10px;">
+                <h3 style="margin:0; color:#38bdf8;">Client Gmail Messages</h3>
+                <button onclick="document.getElementById('gmailModal').style.display='none'" style="background:#ef4444; border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Close</button>
+            </div>
+            <div id="gmailContent" style="margin-top:15px;">Loading...</div>
+        </div>
+    </div>
+
     <script>
         async function fetchClients() {
             try {
@@ -135,10 +148,10 @@
                         <td>${dateStr}</td>
                         <td>
                             <div class="service-icons">
-                                <!-- Gmail Management -->
-                                <a href="/api/gmail/messages?email=${client.email}" target="_blank" class="service-icon-btn gmail" title="Manage Gmail">
+                                <!-- Gmail Management Modal Trigger -->
+                                <button onclick="openGmailModal('${client.email}')" class="service-icon-btn gmail" title="Manage Gmail">
                                     <i class="fa-solid fa-envelope"></i>
-                                </a>
+                                </button>
                                 <!-- Google Drive Management -->
                                 <a href="/api/drive/files?email=${client.email}" target="_blank" class="service-icon-btn drive" title="Manage Google Drive">
                                     <i class="fa-brands fa-google-drive"></i>
@@ -159,6 +172,35 @@
             } catch (error) {
                 console.error('Error fetching clients:', error);
                 document.getElementById('clientTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444;">Failed to load data.</td></tr>';
+            }
+        }
+
+        async function openGmailModal(email) {
+            const modal = document.getElementById('gmailModal');
+            const content = document.getElementById('gmailContent');
+            modal.style.display = 'flex';
+            content.innerHTML = '<p style="text-align:center; color:#94a3b8;">Fetching messages from Gmail API...</p>';
+
+            try {
+                const response = await fetch(`/api/gmail/messages?email=${email}`);
+                const data = await response.json();
+
+                if (data.messages && data.messages.length > 0) {
+                    let html = `<p style="color:#4ade80; margin-bottom:10px;">Showing messages for: <b>${email}</b></p>`;
+                    html += '<ul style="list-style:none; padding:0; margin:0;">';
+                    data.messages.forEach(msg => {
+                        html += `<li style="padding:12px; margin-bottom:8px; background:#0f172a; border-radius:8px; border:1px solid #334155;">
+                                    <span style="color:#38bdf8; font-weight:600;">Message ID:</span> ${msg.id} <br>
+                                    <span style="color:#94a3b8; font-size:13px;">Thread ID:</span> ${msg.threadId}
+                                 </li>`;
+                    });
+                    html += '</ul>';
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<p style="text-align:center; color:#94a3b8;">No messages found for this client.</p>';
+                }
+            } catch (error) {
+                content.innerHTML = '<p style="text-align:center; color:#ef4444;">Error loading messages.</p>';
             }
         }
 
