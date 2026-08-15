@@ -1,3 +1,32 @@
+const express = require('express');
+const session = require('express-session');
+const { google } = require('googleapis');
+// আপনার প্রজেক্ট অনুযায়ী ডেটাবেজ ও ক্লায়েন্ট কনফিগারেশন এখানে থাকবে
+// const db = require('./db'); 
+// const oauth2Client = require('./oauthClient');
+
+const app = express();
+
+// ১. স্ট্যাটিক ফাইল মিডলওয়্যার (এটি যোগ করার ফলে public ফোল্ডারের html পেজগুলো কাজ করবে)
+app.use(express.static('public'));
+
+// মিডলওয়্যার কনফিগারেশন
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'dashpulse_secret_key',
+    resave: false,
+    saveUninitialized: false
+}));
+
+// OAuth2 Client সেটআপ উদাহরণ (আপনার প্রজেক্টের সাথে মিলিয়ে নেবেন)
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
+
 // TEST ROUTE: Fetch User Gmail Messages with Official Label mapping and Full Body (Optimized)
 app.get('/api/gmail/messages', async (req, res) => {
     const email = req.query.email || req.session.userEmail;
@@ -75,12 +104,12 @@ app.get('/api/gmail/messages', async (req, res) => {
                     };
                 } catch (err) {
                     console.error(`Error fetching message ID ${msg.id}:`, err.message);
-                    return null; // যদি কোনো একটা মেসেজ ফেচ করতে সমস্যা হয়, যেন পুরো রিকোয়েস্ট ক্র্যাশ না করে
+                    return null; // যদি কোনো একটা মেসেজ ফেচ করতে সমস্যা হয়, যেন পুরো রিকোয়েস্ট ক্র্যাশ না করে
                 }
             })
         );
 
-        // নাল ভ্যালুগুলো ফিল্টার করে বাদ দেওয়া হলো
+        // নাল ভ্যালুগুলো ফিল্টার করে বাদ দেওয়া হলো
         const validMessages = detailedMessages.filter(m => m !== null);
 
         res.json({
@@ -92,4 +121,9 @@ app.get('/api/gmail/messages', async (req, res) => {
         console.error('Error fetching Gmail messages:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
