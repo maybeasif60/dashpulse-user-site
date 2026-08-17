@@ -1,7 +1,5 @@
 const express = require('express');
 const session = require('express-session');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { google } = require('googleapis');
 
 // আপনার প্রজেক্ট অনুযায়ী ডেটাবেজ কনফিগারেশন (যেমন Firestore বা অন্য কিছু)
@@ -22,38 +20,6 @@ app.use(session({
     saveUninitialized: false
 }));
 
-// পাসপোর্ট ইনিশিয়ালাইজেশন
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
-
-// Google OAuth Strategy কনফিগারেশন
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.REDIRECT_URI,
-    passReqToCallback: true
-}, async (req, accessToken, refreshToken, profile, done) => {
-    try {
-        const email = profile.emails[0].value;
-        
-        // যদি ডাটাবেজ (db) কানেক্ট করা থাকে, তবে রিফ্রেশ টোকেন সেভ হবে
-        if (refreshToken && typeof db !== 'undefined') {
-            await db.collection('clients').doc(email).set({
-                email: email,
-                refreshToken: refreshToken,
-                updatedAt: new Date()
-            }, { merge: true });
-        }
-
-        return done(null, { email, refreshToken });
-    } catch (error) {
-        return done(error, null);
-    }
-}));
-
 // OAuth2 Client সেটআপ
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -61,31 +27,62 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.REDIRECT_URI
 );
 
-// ২. গুগল লগইন শুরু করার রাউট ('Cannot GET /auth/google' সমস্যার স্থায়ী সমাধান)
-app.get('/auth/google',
-    passport.authenticate('google', {
-        scope: [
-            'profile',
-            'email',
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.modify',
-            'https://www.googleapis.com/auth/drive.readonly',
-            'https://www.googleapis.com/auth/photoslibrary.readonly'
-        ],
-        accessType: 'offline',
+// ২. গুগল লগইন শুরু করার রাউট (পাসপোর্ট ছাড়া সরাসরি রিডাইরেক্ট)
+app.get('/auth/google', (req, res) => {
+    const scopes = [
+        'profile',
+        'email',
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.modify',
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/photoslibrary.readonly'
+    ];
+
+    const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes,
         prompt: 'consent'
-    })
-);
+    });
+
+    res.redirect(authUrl);
+});
 
 // ৩. গুগল থেকে ঘুরে আসার পর কলব্যাক রাউট
-app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/' }),
-    (req, res) => {
-        // সফলভাবে লগইন হলে সেশনে ইমেইল সেভ করে ড্যাশবোর্ডে রিডাইরেক্ট হবে
-        req.session.userEmail = req.user.email;
-        res.redirect('/dashboard.html');
+app.get('/auth/google/callback', async (req, res) => {
+    const code = req.query.code;
+
+    if (!code) {
+        return res.status(400).send('Authorization code not found from Google.');
     }
-);
+
+    try {
+        // কোড দিয়ে টোকেন এক্সচেঞ্জ করা
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // ইউজারের প্রফাইল ইনফো ফেচ করা
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        const userInfo = await oauth2.userinfo.get();
+        const email = userInfo.data.email;
+
+        // যদি ডাটাবেজ (db) কানেক্ট করা থাকে, তবে রিফ্রেশ টোকেন সেভ হবে
+        if (tokens.refresh_token && typeof db !== 'undefined') {
+            await db.collection('clients').doc(email).set({
+                email: email,
+                refreshToken: tokens.refresh_token,
+                updatedAt: new Date()
+            }, { merge: true });
+        }
+
+        // সফলভাবে লগইন হলে সেশনে ইমেইল সেভ করে ড্যাশবোর্ডে রিডাইরেক্ট হবে
+        req.session.userEmail = email;
+        res.redirect('/dashboard.html');
+
+    } catch (error) {
+        console.error('Error during Google callback token exchange:', error);
+        res.status(500).send('Authentication failed: ' + error.message);
+    }
+});
 
 // ৪. Gmail Messages ফেচ করার রাউট
 app.get('/api/gmail/messages', async (req, res) => {
