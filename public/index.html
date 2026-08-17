@@ -19,27 +19,48 @@
             text-align: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             background: #1e293b;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         h1 {
             color: #38bdf8;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 32px;
         }
         p {
             color: #94a3b8;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .features {
+            text-align: left;
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .features h3 {
+            color: #38bdf8;
+            margin-top: 0;
+        }
+        .features ul {
+            color: #cbd5e1;
+            padding-left: 20px;
+            margin: 0;
+        }
+        .features li {
+            margin-bottom: 8px;
         }
         .btn {
             background-color: #2563eb;
             color: white;
-            padding: 12px 24px;
+            padding: 14px 28px;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 6px;
             font-weight: bold;
             display: inline-block;
             transition: background 0.3s;
@@ -47,17 +68,43 @@
         .btn:hover {
             background-color: #1d4ed8;
         }
+        .footer-links {
+            margin-top: 30px;
+            font-size: 14px;
+        }
+        .footer-links a {
+            color: #38bdf8;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>MeetRoom</h1>
-        <p><strong>MeetRoom</strong> is a productivity and management application designed to help users efficiently organize rooms, schedules, and workflows.</p>
+        <p><strong>MeetRoom</strong> is a comprehensive productivity and management application built to help users efficiently organize rooms, schedules, and daily workflows.</p>
         
-        <p>To provide these features, MeetRoom requests access to your Google Account to view your Gmail messages, Google Drive files, and Google Photos library strictly for user workflow management within the app.</p>
+        <div class="features">
+            <h3>Why MeetRoom Requests Google Access:</h3>
+            <ul>
+                <li><strong>Gmail Access:</strong> To view and manage user email messages and settings within the workflow.</li>
+                <li><strong>Google Photos:</strong> To view the Google Photos library for media integration.</li>
+                <li><strong>Google Drive:</strong> To access files required for document management.</li>
+            </ul>
+        </div>
+
+        <p>You can securely log in using your Google account to access your personalized workspace dashboard.</p>
 
         <a href="/auth/google" class="btn">Sign in with Google</a>
+
+        <div class="footer-links">
+            <a href="/privacy.html">Privacy Policy</a> | 
+            <a href="/terms.html">Terms of Service</a>
+        </div>
     </div>
 
 </body>
